@@ -1,0 +1,10 @@
+build*/
+cmake-build-*/
+.vscode/
+.idea/
+.cache/
+__pycache__/
+.pytest_cache/
+*.trace.json
+trace.json
+compile_commands.json

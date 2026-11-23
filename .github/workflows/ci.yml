@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gcc-release
+            cxx: g++
+            build_type: Release
+            sanitize: OFF
+          - name: clang-release
+            cxx: clang++
+            build_type: Release
+            sanitize: OFF
+          - name: gcc-asan-ubsan
+            cxx: g++
+            build_type: Debug
+            sanitize: ON
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DTESSERA_WERROR=ON
+          -DTESSERA_SANITIZE=${{ matrix.sanitize }}
+          -DPython3_EXECUTABLE=$(which python)
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Design-space sweep
+        if: matrix.name == 'gcc-release'
+        run: python scripts/sweep.py --bin build/tessera-run >> "$GITHUB_STEP_SUMMARY"
